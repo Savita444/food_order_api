@@ -5,10 +5,9 @@ const fs = require("fs");
 const path = require("path");
 const { validationResult } = require("express-validator");
 const logger = require("../../utils/logger");
-const filePaths = require("../../config/filePaths"); // Import the filePaths config
+const filePaths = require("../../config/filePaths"); 
 const baseViewUrl = filePaths.HOTEL_DOCS_VIEW;
-// const baseViewUrl = filePaths.HOTEL_DOCS_VIEW;
-// Save base64-encoded images to the server
+
 const saveBase64Image = (base64String, filePath) => {
   try {
     const matches = base64String.match(/^data:(image\/\w+);base64,([\s\S]+)/);
@@ -50,7 +49,6 @@ exports.createHotel = async (req, res) => {
   } = req.body;
 
   try {
-    // const existing = await Hotel.findOne({ email });
     const existing = await Hotel.findOne({ user_id, email });
     if (existing) {
       return res.status(400).json({
@@ -213,14 +211,57 @@ exports.getAllHotels = async (req, res) => {
     });
   }
 };
+exports.getHotelById = async (req, res) => {
+  try {
+    const { hotel_id } = req.params;
+    if (!hotel_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'hotel_id is required',
+      });
+    }
 
+    // Fetch the hotel by its _id, omit the password
+    const hotelDoc = await Hotel.findById(hotel_id).select('-password');
+    if (!hotelDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel not found',
+      });
+    }
+
+    // Convert to plain object
+    const hotel = hotelDoc.toObject();
+
+    // Prepend your FILE_VIEW base URL to each doc filename
+    const baseViewUrl = filePaths.HOTEL_DOCS_VIEW;
+    ['gst_certificate', 'pan_card', 'fssai_license'].forEach(field => {
+      if (hotel[field]) {
+        hotel[field] = `${baseViewUrl}/${hotel[field]}`;
+      }
+    });
+
+    // Send back the full hotel details
+    return res.status(200).json({
+      success: true,
+      hotel
+    });
+
+  } catch (err) {
+    logger.error(`Error fetching hotel details: ${err.message}`, { stack: err.stack });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
 exports.deleteHotel = async (req, res) => {
   const { hotelId } = req.body;
 
   if (!hotelId) {
     return res.status(400).json({
       success: false,
-      message: "hotelId is required",
+      message: "hotel Id is required",
     });
   }
 
@@ -239,7 +280,7 @@ exports.deleteHotel = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Hotel soft-deleted successfully",
+      message: "Hotel deleted successfully",
     });
   } catch (err) {
     logger.error(`Error in softDeleteHotel: ${err.message}`, {
@@ -248,6 +289,46 @@ exports.deleteHotel = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+exports.updateHotelStatus = async (req, res) => {
+  try {
+    const { hotel_id } = req.params;
+    const { isActive } = req.body;
+
+    // Validate input
+    if (![0, 1].includes(isActive)) {
+      return res.status(400).json({
+        success: false,
+        message: 'isActive must be 0 (inactive) or 1 (active)',
+      });
+    }
+
+    // Update hotel
+    const hotel = await Hotel.findByIdAndUpdate(
+      hotel_id,
+      { isActive },
+      { new: true, select: '-password' }
+    );
+
+    if (!hotel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Hotel has been ${isActive ? 'activated' : 'deactivated'}.`,
+      hotel,
+    });
+  } catch (err) {
+    logger.error(`Error updating hotel status: ${err.message}`, { stack: err.stack });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
     });
   }
 };

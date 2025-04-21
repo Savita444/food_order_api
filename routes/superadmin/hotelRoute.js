@@ -8,5 +8,8 @@ const { verifyHotelAdmin } = require('../../middlewares/auth');
 router.post('/add',verifyHotelAdmin, hotelValidator.createHotelValidation, hotelController.createHotel);
 router.post('/list', verifyHotelAdmin, hotelController.getAllHotels);
 router.post('/delete', verifyHotelAdmin, hotelController.deleteHotel);
+router.post('/:hotel_id', verifyHotelAdmin, hotelController.getHotelById);
+router.post('/status/:hotel_id', verifyHotelAdmin, hotelController.updateHotelStatus);
+
 
 module.exports = router;
