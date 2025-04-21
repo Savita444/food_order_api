@@ -7,6 +7,7 @@ exports.login = async (req, res) => {
 
   try {
     const user = await User.findOne({ email }).populate('role_id');
+console.log(user, "useruseruser");
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
