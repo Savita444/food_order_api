@@ -15,10 +15,6 @@ exports.login = async (req, res) => {
     if (String(user.role_id._id) !== role_id) {
       return res.status(401).json({ message: 'Invalid role for this user' });
     }
-
-    if (user.role_id.name !== 'superadmin') {
-      return res.status(401).json({ message: 'Not authorized as superadmin' });
-    }
     
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
