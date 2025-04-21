@@ -1,17 +1,19 @@
-const bcrypt = require('bcrypt');
-const Hotel = require('../../models/Hotel');
-const fs = require('fs');
-const path = require('path');
-const { validationResult } = require('express-validator');
-const logger = require('../../utils/logger');
-const filePaths = require('../../config/filePaths'); // Import the filePaths config
-
+const bcrypt = require("bcrypt");
+const Hotel = require("../../models/Hotel");
+const User = require("../../models/userModel");
+const fs = require("fs");
+const path = require("path");
+const { validationResult } = require("express-validator");
+const logger = require("../../utils/logger");
+const filePaths = require("../../config/filePaths"); // Import the filePaths config
+const baseViewUrl = filePaths.HOTEL_DOCS_VIEW;
+// const baseViewUrl = filePaths.HOTEL_DOCS_VIEW;
 // Save base64-encoded images to the server
 const saveBase64Image = (base64String, filePath) => {
   try {
     const matches = base64String.match(/^data:(image\/\w+);base64,([\s\S]+)/);
     if (matches && matches.length === 3) {
-      const buffer = Buffer.from(matches[2], 'base64');
+      const buffer = Buffer.from(matches[2], "base64");
       fs.writeFileSync(filePath, buffer);
       return true;
     } else {
@@ -48,11 +50,12 @@ exports.createHotel = async (req, res) => {
   } = req.body;
 
   try {
-    const existing = await Hotel.findOne({ email });
+    // const existing = await Hotel.findOne({ email });
+    const existing = await Hotel.findOne({ user_id, email });
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: 'Hotel already registered with this email',
+        message: "Hotel already registered with this email",
       });
     }
 
@@ -76,9 +79,9 @@ exports.createHotel = async (req, res) => {
       return saved ? filename : null;
     };
 
-    const gstFile = saveImage(gst_certificate, 'gst');
-    const panFile = saveImage(pan_card, 'pan');
-    const fssaiFile = saveImage(fssai_license, 'fssai');
+    const gstFile = saveImage(gst_certificate, "gst");
+    const panFile = saveImage(pan_card, "pan");
+    const fssaiFile = saveImage(fssai_license, "fssai");
 
     const newHotel = new Hotel({
       role_id,
@@ -99,7 +102,7 @@ exports.createHotel = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Hotel created successfully',
+      message: "Hotel created successfully",
       hotel: {
         _id: newHotel._id,
         email: newHotel.email,
@@ -116,7 +119,7 @@ exports.createHotel = async (req, res) => {
     logger.error(`Error creating hotel: ${err.message}`, { stack: err.stack });
     res.status(500).json({
       success: false,
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
     });
   }
 };
@@ -160,32 +163,40 @@ exports.createHotel = async (req, res) => {
 // };
 exports.getAllHotels = async (req, res) => {
   try {
-    const { user_id, hotel_name = '', page = 1, limit = 10 } = req.body || {};
+    const { user_id, hotel_name = "", page = 1, limit = 10 } = req.body || {};
 
     if (!user_id) {
       return res.status(400).json({
         success: false,
-        message: 'user_id is required',
+        message: "user_id is required",
       });
     }
 
-    const query = { user_id }; // filter by user_id
-
+    const query = { user_id };
     if (hotel_name) {
-      query.hotel_name = { $regex: hotel_name, $options: 'i' }; // search by hotel_name
+      query.hotel_name = { $regex: hotel_name, $options: "i" };
     }
 
     const skip = (page - 1) * limit;
 
-    const [hotels, total] = await Promise.all([
+    const [rawHotels, total] = await Promise.all([
       Hotel.find(query)
-        .select('-password')
+        .select("-password")
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
-
       Hotel.countDocuments(query),
     ]);
+
+    const hotels = rawHotels.map((hotel) => {
+      const doc = hotel.toObject();
+      ["gst_certificate", "pan_card", "fssai_license"].forEach((field) => {
+        if (doc[field]) {
+          doc[field] = `${baseViewUrl}/${doc[field]}`;
+        }
+      });
+      return doc;
+    });
 
     res.status(200).json({
       success: true,
@@ -198,7 +209,7 @@ exports.getAllHotels = async (req, res) => {
     logger.error(`Error fetching hotels: ${err.message}`, { stack: err.stack });
     res.status(500).json({
       success: false,
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
     });
   }
 };
@@ -231,11 +242,12 @@ exports.deleteHotel = async (req, res) => {
       message: "Hotel soft-deleted successfully",
     });
   } catch (err) {
-    logger.error(`Error in softDeleteHotel: ${err.message}`, { stack: err.stack });
+    logger.error(`Error in softDeleteHotel: ${err.message}`, {
+      stack: err.stack,
+    });
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
     });
   }
 };
-
