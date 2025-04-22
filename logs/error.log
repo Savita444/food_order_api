@@ -3,3 +3,4 @@
 [31merror[39m: Error fetching FAQ by ID: Cast to ObjectId failed for value "delete" (type string) at path "_id" for model "FAQ" {"timestamp":"2025-04-21T11:41:26.704Z"}
 [31merror[39m: Error fetching FAQ by ID: Cast to ObjectId failed for value "delete" (type string) at path "_id" for model "FAQ" {"timestamp":"2025-04-21T11:43:42.537Z"}
 [31merror[39m: Error fetching FAQ by ID: Cast to ObjectId failed for value "delete" (type string) at path "_id" for model "FAQ" {"timestamp":"2025-04-21T11:44:21.283Z"}
+[31merror[39m: Error updating Term & Condition: faqData is not defined {"timestamp":"2025-04-22T04:49:35.623Z"}
