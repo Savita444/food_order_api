@@ -122,79 +122,27 @@ exports.createHotel = async (req, res) => {
   }
 };
 
-// exports.getAllHotels = async (req, res) => {
-//   try {
-//     const { hotel_name = '', page = 1, limit = 10 } = req.body || {};
-
-//     const query = {};
-
-//     if (hotel_name) {
-//       query.hotel_name = { $regex: hotel_name, $options: 'i' }; // case-insensitive search
-//     }
-
-//     const skip = (page - 1) * limit;
-
-//     const [hotels, total] = await Promise.all([
-//       Hotel.find(query)
-//         .select('-password')
-//         .skip(skip)
-//         .limit(Number(limit))
-//         .sort({ createdAt: -1 }),
-
-//       Hotel.countDocuments(query),
-//     ]);
-
-//     res.status(200).json({
-//       success: true,
-//       currentPage: Number(page),
-//       totalPages: Math.ceil(total / limit),
-//       totalRecords: total,
-//       hotels,
-//     });
-//   } catch (err) {
-//     logger.error(`Error fetching hotels: ${err.message}`, { stack: err.stack });
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal Server Error',
-//     });
-//   }
-// };
 exports.getAllHotels = async (req, res) => {
   try {
-    const { user_id, hotel_name = "", page = 1, limit = 10 } = req.body || {};
+    const { hotel_name = '', page = 1, limit = 10 } = req.body || {};
 
-    if (!user_id) {
-      return res.status(400).json({
-        success: false,
-        message: "user_id is required",
-      });
-    }
+    const query = {};
 
-    const query = { user_id };
     if (hotel_name) {
-      query.hotel_name = { $regex: hotel_name, $options: "i" };
+      query.hotel_name = { $regex: hotel_name, $options: 'i' }; // case-insensitive search
     }
 
     const skip = (page - 1) * limit;
 
-    const [rawHotels, total] = await Promise.all([
+    const [hotels, total] = await Promise.all([
       Hotel.find(query)
-        .select("-password")
+        .select('-password')
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
+
       Hotel.countDocuments(query),
     ]);
-
-    const hotels = rawHotels.map((hotel) => {
-      const doc = hotel.toObject();
-      ["gst_certificate", "pan_card", "fssai_license"].forEach((field) => {
-        if (doc[field]) {
-          doc[field] = `${baseViewUrl}/${doc[field]}`;
-        }
-      });
-      return doc;
-    });
 
     res.status(200).json({
       success: true,
@@ -207,10 +155,57 @@ exports.getAllHotels = async (req, res) => {
     logger.error(`Error fetching hotels: ${err.message}`, { stack: err.stack });
     res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: 'Internal Server Error',
     });
   }
 };
+// exports.getAllHotels = async (req, res) => {
+//   try {
+//     const {hotel_name = "", page = 1, limit = 10 } = req.body || {};
+
+  
+
+//     const query = { user_id };
+//     if (hotel_name) {
+//       query.hotel_name = { $regex: hotel_name, $options: "i" };
+//     }
+
+//     const skip = (page - 1) * limit;
+
+//     const [rawHotels, total] = await Promise.all([
+//       Hotel.find(query)
+//         .select("-password")
+//         .skip(skip)
+//         .limit(Number(limit))
+//         .sort({ createdAt: -1 }),
+//       Hotel.countDocuments(query),
+//     ]);
+
+//     const hotels = rawHotels.map((hotel) => {
+//       const doc = hotel.toObject();
+//       ["gst_certificate", "pan_card", "fssai_license"].forEach((field) => {
+//         if (doc[field]) {
+//           doc[field] = `${baseViewUrl}/${doc[field]}`;
+//         }
+//       });
+//       return doc;
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       currentPage: Number(page),
+//       totalPages: Math.ceil(total / limit),
+//       totalRecords: total,
+//       hotels,
+//     });
+//   } catch (err) {
+//     logger.error(`Error fetching hotels: ${err.message}`, { stack: err.stack });
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error",
+//     });
+//   }
+// };
 exports.getHotelById = async (req, res) => {
   try {
     const { hotel_id } = req.params;

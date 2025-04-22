@@ -187,7 +187,6 @@ exports.getQRCodeById = async (req, res) => {
     });
   }
 };
-
 exports.updateQRCodeStatus = async (req, res) => {
   try {
     const { qr_id } = req.params;
